@@ -101,12 +101,21 @@ trait IndexerService {
       val start = cu.getLineNumber(node.getStartPosition)
       val end = cu.getLineNumber(node.getStartPosition + node.getLength)
       val body = processBody(node)
-      val name = node.getName.getFullyQualifiedName
-      val index = fqn + "." + name + "(" + node.parameters().map { x =>
+      val fullyQualifiedName = getFullName(node)
+      val index = fullyQualifiedName + "(" + node.parameters().map { x =>
         x.toString.split(" ").head
       }.mkString(",") + "):" + node.getReturnType2
-      addFunc(index, new Func(fqn + "." + name, start, end, body, jarName.split('/').toList.last))
+      addFunc(index, new Func(fullyQualifiedName, start, end, body, jarName.split('/').toList.last))
       super.visit(node)
+    }
+
+    def getFullName(node: MethodDeclaration): String = {
+      Option(node.resolveBinding()).map { x =>
+        if(fqn.equals(x.getDeclaringClass.getPackage.getName + "." + x.getDeclaringClass.getName))
+          fqn + "." + x.getName
+        else
+          fqn + "." + x.getDeclaringClass.getName + "." + x.getName
+      }.getOrElse(fqn + "." + node.getName.getFullyQualifiedName)
     }
 
     /**
@@ -130,7 +139,7 @@ trait IndexerService {
           }
           Some(body)
 
-        case None => None
+        case None => Some(node.toString)
       }
 
     }
