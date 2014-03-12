@@ -15,5 +15,6 @@ dist
 /RUNNING_PID
 /.settings
 backup/*
-jars/*
+!backup/README.md
+jars/*.jar
 *.class
