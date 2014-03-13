@@ -105,9 +105,24 @@ trait IndexerService {
       val index = fullyQualifiedName + "(" + node.parameters().map { x =>
         x.toString.split(" ").head
       }.mkString(",") + "):" + node.getReturnType2
+      //node.accept(new FieldInvocationVisitor(node, fqn, jarName))
       addFunc(index, new Func(fullyQualifiedName, start, end, body, jarName.split('/').toList.last))
       super.visit(node)
     }
+
+    /*override def visit(fd: FieldDeclaration) = {
+      val o = fd.fragments()
+      println(fqn)
+      println(o.get(0))
+      if (o.isInstanceOf[VariableDeclarationFragment]) {
+        val s = o.asInstanceOf[VariableDeclarationFragment].getInitializer.toString
+        /*if(s.toUpperCase.equals(s)) {
+          println("field: " + s)
+        }*/
+        println(s)
+      }
+      super.visit(fd)
+    }*/
 
     def getFullName(node: MethodDeclaration): String = {
       Option(node.resolveBinding()).map { x =>
@@ -129,6 +144,7 @@ trait IndexerService {
         case Some(x) =>
           val invokeMap = scala.collection.mutable.Map.empty[String, String]
           Option(node.getBody).map(_.accept(new MethodInvocationVisitor(invokeMap)))
+          Option(node.getBody).map(_.accept(new FieldInvocationVisitor()))
           var body = node.toString.replaceAll("&", "&amp;").replace(">", "&gt;").
             replace("<", "&lt;").replace("\"", "&quot;")
           invokeMap foreach {
@@ -163,6 +179,24 @@ trait IndexerService {
         super.visit(node)
       }
     }
+
+    class FieldInvocationVisitor() extends ASTVisitor {
+      override def visit(fd: FieldDeclaration) = {
+        println("Field Field")
+        val o = fd.fragments()
+        println(fqn)
+        println(o.get(0))
+        /*if (o.isInstanceOf[VariableDeclarationFragment]) {
+          val s = o.asInstanceOf[VariableDeclarationFragment].getInitializer.toString
+          /*if(s.toUpperCase.equals(s)) {
+            println("field: " + s)
+          }*/
+          println(s)
+        }*/
+        super.visit(fd)
+      }
+    }
+
   }
 
 
@@ -197,8 +231,8 @@ object MapIndexer extends IndexerService {
     try {
       val files = io.Source.fromFile(cachedJars).getLines
       jars foreach { x: java.io.File =>
-        if (!files.contains(jarDir + x.getName)) {
-          println(jarDir + x.getName)
+        if (!files.contains(x.getName)) {
+          //println(jarDir + x.getName)
           future((index(x.getPath)))
         } else {
           jarsToIndex -= 1
