@@ -16,6 +16,7 @@ import play.api.mvc._
 import play.api.templates.Html
 import scala.concurrent._
 import scala.concurrent.duration._
+import org.eclipse.jdt.core.dom._
 
 object Application extends Controller {
   implicit val timeout = Timeout(6.second)
@@ -26,6 +27,7 @@ object Application extends Controller {
       "submit" -> ignored(AnyRef)))
 
   def index = Action {
+    main()
     Ok(views.html.index("Paste your stacktrace here."))
   }
 
@@ -128,5 +130,30 @@ object Application extends Controller {
       Redirect(routes.Application.index).flashing(
         "error" -> "Missing file")
     }
+  }
+
+  def main() {
+    val parser: ASTParser = ASTParser.newParser(AST.JLS4)
+    parser.setSource("public class A { int i = 9;  \n int j; \n ArrayList<Integer> al = new ArrayList<Integer>();j=1000; }".toCharArray)
+    parser.setKind(ASTParser.K_COMPILATION_UNIT)
+    val cu: CompilationUnit  = parser.createAST(null).asInstanceOf[CompilationUnit]
+    cu.accept(new ASTVisitor() {
+      var names = List[String]()
+
+      override def visit(node: VariableDeclarationFragment): Boolean = {
+        val name = node.getName
+        names ::= name.getIdentifier
+        println("Declaration of '"+name+"' at line"+cu.getLineNumber(name.getStartPosition))
+        false
+      }
+
+      override def visit(node: SimpleName): Boolean = {
+        println(node.getIdentifier)
+        if (this.names.contains(node.getIdentifier)) {
+          println("Usage of '" + node + "' at line " + cu.getLineNumber(node.getStartPosition))
+        }
+        true
+      }
+    })
   }
 }

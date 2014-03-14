@@ -110,6 +110,15 @@ trait IndexerService {
       super.visit(node)
     }
 
+    /*override def visit(node1: ForStatement): Boolean = {
+      println(fqn+".")
+      println(node1.getBody.toString)
+      /*if (this.names.contains(node.getIdentifier)) {
+        println("Usage of '" + node + "' at line " + cu.getLineNumber(node.getStartPosition))
+      }*/
+      super.visit(node1)
+    }*/
+
     /*override def visit(fd: FieldDeclaration) = {
       val o = fd.fragments()
       println(fqn)
@@ -144,7 +153,7 @@ trait IndexerService {
         case Some(x) =>
           val invokeMap = scala.collection.mutable.Map.empty[String, String]
           Option(node.getBody).map(_.accept(new MethodInvocationVisitor(invokeMap)))
-          Option(node.getBody).map(_.accept(new FieldInvocationVisitor()))
+          Option(node.getBody).map(_.accept(new VariableInvocationVisitor(node)))
           var body = node.toString.replaceAll("&", "&amp;").replace(">", "&gt;").
             replace("<", "&lt;").replace("\"", "&quot;")
           invokeMap foreach {
@@ -180,12 +189,15 @@ trait IndexerService {
       }
     }
 
-    class FieldInvocationVisitor() extends ASTVisitor {
-      override def visit(fd: FieldDeclaration) = {
-        println("Field Field")
-        val o = fd.fragments()
-        println(fqn)
-        println(o.get(0))
+    class VariableInvocationVisitor(node: MethodDeclaration) extends ASTVisitor {
+      /*override def visit(fd: VariableDeclarationFragment) = {
+        //println("Field Field")
+        val o = fd.toString
+        val m = Option(fd.resolveBinding()).map { x =>
+          x.getVariableDeclaration.getType.getName
+        }
+        println(fqn+"."+node.getName.toString)
+        println(o +"---"+m)
         /*if (o.isInstanceOf[VariableDeclarationFragment]) {
           val s = o.asInstanceOf[VariableDeclarationFragment].getInitializer.toString
           /*if(s.toUpperCase.equals(s)) {
@@ -194,6 +206,32 @@ trait IndexerService {
           println(s)
         }*/
         super.visit(fd)
+      }*/
+
+      override def visit(node1: ForStatement): Boolean = {
+        println(fqn+"."+node.getName.toString)
+        println(node1.getBody.toString)
+        /*if (this.names.contains(node.getIdentifier)) {
+          println("Usage of '" + node + "' at line " + cu.getLineNumber(node.getStartPosition))
+        }*/
+        super.visit(node1)
+      }
+
+      override def visit(node1: Javadoc): Boolean = {
+        println(fqn+"."+node.getName.toString)
+        println(node1.toString + "---" )
+        /*if (this.names.contains(node.getIdentifier)) {
+          println("Usage of '" + node + "' at line " + cu.getLineNumber(node.getStartPosition))
+        }*/
+        super.visit(node1)
+      }
+
+      override def visit(ti: TypeDeclarationStatement) = {
+        println(fqn+"."+ node.getName.toString)
+        println(Option(ti.resolveBinding()) map { x =>
+          x.getName
+        })
+        super.visit(ti)
       }
     }
 
